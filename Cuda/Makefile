@@ -3,7 +3,11 @@ ct:
 	nvcc --generate-line-info SOURCES/crecimientoTumoral.cu -o BIN/ct
 	
 ct2: 
-	nvcc SOURCES/crecimientoTumoral2.cu -o BIN/ct
+	nvcc --generate-line-info SOURCES/crecimientoTumoral2.cu -o BIN/ct
+
+ctDLB: 
+	clear
+	nvcc --generate-line-info SOURCES/crecimientoTumoralDLB.cu -o BIN/ct
 	
 rm:
 	rm -f TABLES/*	
@@ -15,9 +19,13 @@ run: ct rm
 	./BIN/ct
 	python3 SOURCES/grafiquear.py
 
-run2: ct2 rm
+run2: ct2 rm 
 	./BIN/ct
 	python3 SOURCES/grafiquear.py
 	
-clean:
+runDLB: ctDLB rm
+	./BIN/ct
+	python3 SOURCES/grafiquear.py
+	
+clean: rm
 	rm -f BIN/*

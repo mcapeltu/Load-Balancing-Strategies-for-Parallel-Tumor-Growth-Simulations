@@ -213,11 +213,15 @@ int simulacion_cancer(vector < vector <Coordenadas> > &matriz, vector < vector <
 	auto extra = duration_cast<chrono::milliseconds>(fin_extra - fin_extra);
 	int time = 0;
 	
+	auto new_time = high_resolution_clock::now(); //Declaramos los valores que vamos a usar para el calculo de tiempo
+	auto fin_time = high_resolution_clock::now();
+	int sudo_cont = 0;
+	
 	//Durante NUM_DIAS días
 	for( int dia = 1; dia < NUM_DIAS; dia++){
 		//En cada día 24 pasos
 		for (int paso = 0; paso < pasos; paso++){
-						
+			new_time = high_resolution_clock::now();			
 			#pragma omp parallel default( none ) shared( cel_procesadas, indice_futuras, cout, dia, paso, matriz, futuras, rejilla, contador_cells, pasos, myfile, file, new_extra, fin_extra, extra, time, vec_iteradores, T, PS, ALPHAMAX, ROMAX, pasar, distribucion ) private(region_cambiada, indice_libre, casilla_elegida, aux, i, j, tid, cell, nueva_cell, cas_libres, alpha, pd, migrar, p_obtenida, p_total)				
 			{ 
 				//Ponemos los iteradores al principio de los vectores de Futuras
@@ -347,6 +351,22 @@ int simulacion_cancer(vector < vector <Coordenadas> > &matriz, vector < vector <
 				indice_futuras ++;
 			}
 			
+			fin_time = high_resolution_clock::now();
+			file = "TIMES/tiempos" + to_string(dia) + "dia.txt";
+			sudo_cont = 0;
+			myfile.open( file, ios::app );
+	  		if (myfile.is_open()){
+				for( int filas = 0; filas < rejilla.size(); filas++ ){
+	  				for ( int columnas = 0; columnas < rejilla[filas].size(); columnas++){
+		  				if( rejilla[filas][columnas].cancer ){
+			  				sudo_cont ++;
+			  				//filas ++;
+			  			}
+		  			}
+	  			}
+  				myfile << sudo_cont << " " << duration_cast<milliseconds>(fin_time - new_time).count() << "\n";
+	    			myfile.close();
+	  		} else cout << "Unable to open file TIME dia " << dia << endl ;
 			
 		}
 		new_extra = high_resolution_clock::now();		
