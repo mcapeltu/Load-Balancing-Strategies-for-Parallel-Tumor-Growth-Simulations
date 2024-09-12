@@ -23,7 +23,7 @@ static double ALPHAMAX = 0.01;
 //Tamaño del grid
 static int LONG = 751;
 //Nº de días
-static int NUM_DIAS = 11;
+static int NUM_DIAS = 150;
 //Vector con los valores de n!, para los numeros del 0 al 8
 static vector< int > FACTORIAL(9);
 
@@ -323,10 +323,27 @@ vector<int> casillas_libres( int i, int j, vector< vector <Celula> > &rejilla){
 	@return: Probabilidad de que los vecinos a partir del inicio, y sin contar el elegido, no migren ni se reproduzcan en una célula vecina
 */
 double combinaciones(int elegido, int inicio, int vecinos, int nivel, vector< double > &probabilidad_v){
-	double p = 0;
+	double p = 0.0;
 	for( int j = inicio; j < vecinos; j++){
 		if( j != elegido)
 			p += (1-probabilidad_v[j])*( FACTORIAL[vecinos - 1 - nivel]*FACTORIAL[nivel] + combinaciones(elegido, j+1, vecinos, nivel+1, probabilidad_v) );
+	}
+	return p;
+}
+
+/* Función que añade la probabilidad de que uno de los vecinos no ocurra, y se llama a si misma para añadir el resto de vecinos
+	@param elegido: Número del vecino que tiene probabilidad positiva
+	@param inicio: Número del vecino desde el que empezar a iterar
+	@param vecinos: Número total de vecinos
+	@param nivel: Número de elementos múltiplicados en este nivel
+	@probabilidad_v: Vector con las probabilidades de migrar y reproducirse de los vecinos
+	@return: Probabilidad de que los vecinos a partir del inicio, y sin contar el elegido, no migren ni se reproduzcan en una célula vecina
+*/
+double combinacionesCancer(int elegido, int inicio, int vecinos, int nivel, vector< double > &probabilidad_v){
+	double p = 0.0;
+	for( int j = inicio; j < vecinos; j++){
+		if( j != elegido)
+			p += (1-probabilidad_v[j])*( FACTORIAL[vecinos - nivel]*FACTORIAL[nivel] + combinaciones(elegido, j+1, vecinos, nivel+1, probabilidad_v) );
 	}
 	return p;
 }
@@ -335,20 +352,23 @@ double combinaciones(int elegido, int inicio, int vecinos, int nivel, vector< do
 	@param cell: Célula en la posición que estamos calculando
 	@return: Vector con los valores de las probabilidades de los vecinos de migrar o reproducirse en el sitio de la célula
 */
-vector <double> calculoProbabilidadVecinos(Celula &cell){
+vector <double> calculoProbabilidadVecinos(Celula &cell, int cancer){
 	
 	vector< double > probabilidad_v; //Vector donde se van a guardar las probabilidades de los vecinos
 	vector< double > probabilidad_f; //Vector final con las probabilidades múltiplicadas
 	
 	for( int i = 0 ; i < 8; i++){
 		if( cell.vecinos[i] != NULL ){ 
-			probabilidad_v.push_back( (cell.vecinos[i]->P_migra + cell.vecinos[i]->P_repro) / (8.0 - cell.vecinos[i]->n_vecinos) );
+			probabilidad_v.push_back( (cell.vecinos[i]->P_migra + cell.vecinos[i]->P_repro) / (8.0 - cell.vecinos[i]->n_vecinos + cancer) );
 		}
 	}
 		
 	for( int i = 0; i < cell.n_vecinos; i++){
-		probabilidad_f.push_back( probabilidad_v[i]*(FACTORIAL[cell.n_vecinos-1] + combinaciones( i, 0, cell.n_vecinos, 1, probabilidad_v) ) / (double)cell.n_vecinos );
-		 
+		if(cancer == 0){
+			probabilidad_f.push_back( probabilidad_v[i]*(FACTORIAL[cell.n_vecinos-1] + combinaciones( i, 0, cell.n_vecinos, 1, probabilidad_v) ) / (double)FACTORIAL[cell.n_vecinos] );
+		} else if (cancer == 1){
+			probabilidad_f.push_back( probabilidad_v[i]*(FACTORIAL[cell.n_vecinos] + combinacionesCancer( i, 0, cell.n_vecinos, 1, probabilidad_v) ) / (double)FACTORIAL[cell.n_vecinos] );
+		}
 	}
 	
 	return probabilidad_f;
@@ -454,7 +474,7 @@ int simulacion_cancer(vector < vector< vector <Celula> > > &rejillas){
 								} else {
 									//Se cálcula las probabilidades de cada vecino
 									p_auxiliar = 0.0;
-									p_vecinos = calculoProbabilidadVecinos(cell);	
+									p_vecinos = calculoProbabilidadVecinos(cell,1);	
 									for( int vec = 0; vec < p_vecinos.size(); vec ++){
 										p_auxiliar += p_vecinos[vec]; }
 									
@@ -515,7 +535,7 @@ int simulacion_cancer(vector < vector< vector <Celula> > > &rejillas){
 						if( cell.n_vecinos > 0 ){ //Si tiene celulas cancerígenas alrededor
 							//Se cálcula las probabilidades de cada vecino
 							p_auxiliar = 0.0;
-							p_vecinos = calculoProbabilidadVecinos(cell);	
+							p_vecinos = calculoProbabilidadVecinos(cell,0);	
 							for( int vec = 0; vec < p_vecinos.size(); vec ++){
 								p_auxiliar += p_vecinos[vec];  }
 							//Se calcula la probabilidad total de la posición de que haya una célula en la iteración siguiente

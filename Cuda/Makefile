@@ -2,8 +2,8 @@ ct:
 	clear
 	nvcc --generate-line-info SOURCES/crecimientoTumoral.cu -o BIN/ct
 	
-ct2: 
-	nvcc --generate-line-info SOURCES/crecimientoTumoral2.cu -o BIN/ct
+ctTiempos: 
+	nvcc --generate-line-info SOURCES/crecimientoTumoralTiempos.cu -o BIN/ct
 
 ctDLB: 
 	clear
@@ -14,18 +14,16 @@ rm:
 	rm -f IMAGES/*	
 	rm -f OUTPUT/*
 	rm -f TIMES/*
-	
-run: ct rm
-	./BIN/ct
-	python3 SOURCES/grafiquear.py
 
-run2: ct2 rm 
+exe:
 	./BIN/ct
-	python3 SOURCES/grafiquear.py
+	#python3 SOURCES/grafiquear.py	
 	
-runDLB: ctDLB rm
-	./BIN/ct
-	python3 SOURCES/grafiquear.py
+run: ct rm exe
+
+run2: ct2 rm exe
+	
+runDLB: ctDLB rm exe
 	
 clean: rm
 	rm -f BIN/*

@@ -7,6 +7,19 @@ totalcelulas = 0
 totaltiempos = 0
 meancelulas = []
 meantiempos = []
+for fichero in directorio:
+	celulas = [0]
+	tiempos = [0]
+	with open(fichero, "r+") as file1:
+		for line in file1:
+			celulas = np.append(celulas, int(line.split()[0]) )
+			tiempos = np.append(tiempos, int(line.split()[1]) )
+		
+		plt.plot(celulas, tiempos, 'ko')
+		plt.title('Tiempo de ejecución según el número de células cancerígenas')
+		plt.xlabel('Nº de células cancerígenas')
+		plt.ylabel('Tiempo de ejecución (ms)')
+		plt.savefig('IMAGES/tiempos.png')
 #for fichero in directorio: 
 #	celulas = [0]
 #	tiempos = [0]

@@ -27,6 +27,8 @@ static const double ALPHAMAX = 0.01;
 static const int LONG = 1024;
 //Nº de días
 static const int NUM_DIAS = 150;
+//Nº de pasos
+static const int PASOS = 24;
 
 //Vector con los valores de n!, para los numeros del 0 al 8
 __device__ __managed__ int FACTORIAL[9];
@@ -126,7 +128,9 @@ class Celula {
 		vecinos[7] = NULL;
 	}
 	
-	//Definición del operador de asignación, copia los valores de los parametros de la celula a la derecha del operador
+	/*Definición del operador de asignación, copia los valores de los parametros de la celula a la derecha del operador
+	@param cell: Célula de la que se va a hacer la copia
+	*/
 	Celula& operator=( const Celula* cell){
 		cancer = cell->cancer;
 		cct = cell->cct;
@@ -148,6 +152,13 @@ class Celula {
 		return *this;
 	}
 	
+	/* Función que asigna los valores de cancer, cct, ro, mu y alpha en conjunto y luego recalcula las probabilidades
+	@param c:  Nuevo valor de cancer
+	@param cc: Nuevo valor de cct
+	@param r:  Nuevo valor de ro
+	@param m:  Nuevo valor de mu
+	@param a:  Nuevo valor de alpha
+	*/
 	__device__ void assign( bool c, double cc, double r, double m, double a ){
 		cancer = c;
 		cct = cc;
@@ -180,7 +191,7 @@ class Celula {
 	*/
 	__device__ void decreaseRo(){
 
-//		if(ro>0) ro--;	
+//		if(ro>0) ro --;	
 	
 		ro --;
 		if(ro == 0)
@@ -205,25 +216,20 @@ struct Coordenadas{
 	CUDA Declarations
   _________________________________________________________	
 */
-	//Grid donde se simula el tumor
-	//__device__ __managed__ Celula grid[2][LONG][LONG];
+	//Coordenadas de la primera Célula Madre 
 	__device__ __managed__ Coordenadas Madre;
-	__device__ __managed__ int blockInf;
-	__device__ __managed__ int blockSup;
-	__device__ __managed__ int threadInf;
-	__device__ __managed__ int threadSup;
 	
 /* Kernel para inicializar el generador de números aleatorios
 	@param *state: Vector de direcciones donde guardar el estado del generador para cada hilo
 */
 __global__ void setup_kernel(curandState *state){	
 	int id = blockIdx.x * LONG + threadIdx.x;
-	/* Each thread gets same seed, a different sequence
-	number, no offset */
+	// Each thread gets same seed, a different sequence number, no offset
 	curand_init(1, id, 0, &state[id]);
 }
 
 /* Kernel que actualiza los vectores de vecinos y el número de vecinos de cada célula
+	@param *grid:  Rejilla donde se simula el crecimiento tumoral
 	@param estado: Entero 0 o 1 que nos indica en cual de los dos grid trabajamos
 */
 __global__ void actualizarVecinos( Celula *grid, int estado ){
@@ -258,7 +264,7 @@ __global__ void actualizarVecinos( Celula *grid, int estado ){
 		grid[estado*LONG*LONG + y*LONG + x].vecinos[2] = NULL;	
 	}
 	
-	if ( x+1 < LONG && grid[estado*LONG*LONG + y*LONG + x+1].cancer /*&& grid[estado][x+1][y].ro < 11*/ ){
+	if ( x+1 < LONG && grid[estado*LONG*LONG + y*LONG + x+1].cancer ){
        		grid[estado*LONG*LONG + y*LONG + x].vecinos[3] = &grid[estado*LONG*LONG + y*LONG + x+1];
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
@@ -266,7 +272,7 @@ __global__ void actualizarVecinos( Celula *grid, int estado ){
 		grid[estado*LONG*LONG + y*LONG + x].vecinos[3] = NULL;	
 	}
 	
-	if ( x+1 < LONG && y+1 < LONG && grid[estado*LONG*LONG + (y+1)*LONG + x+1].cancer /*&& grid[estado][x+1][y+1].ro < 11 */){
+	if ( x+1 < LONG && y+1 < LONG && grid[estado*LONG*LONG + (y+1)*LONG + x+1].cancer ){
        		grid[estado*LONG*LONG + y*LONG + x].vecinos[4] = &grid[estado*LONG*LONG + (y+1)*LONG + x+1];
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
@@ -274,7 +280,7 @@ __global__ void actualizarVecinos( Celula *grid, int estado ){
 		grid[estado*LONG*LONG + y*LONG + x].vecinos[4] = NULL;	
 	}
 	
-	if ( y+1 < LONG && grid[estado*LONG*LONG + (y+1)*LONG + x].cancer /*&& grid[estado][x][y+1].ro < 11*/ ){
+	if ( y+1 < LONG && grid[estado*LONG*LONG + (y+1)*LONG + x].cancer ){
        		grid[estado*LONG*LONG + y*LONG + x].vecinos[5] = &grid[estado*LONG*LONG + (y+1)*LONG + x];
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
@@ -282,7 +288,7 @@ __global__ void actualizarVecinos( Celula *grid, int estado ){
 		grid[estado*LONG*LONG + y*LONG + x].vecinos[5] = NULL;	
 	}
 	
-	if ( x-1 >= 0  && y+1 < LONG && grid[estado*LONG*LONG + (y+1)*LONG + x-1].cancer /*&& grid[estado][x-1][y+1].ro < 11*/ ){
+	if ( x-1 >= 0  && y+1 < LONG && grid[estado*LONG*LONG + (y+1)*LONG + x-1].cancer ){
        		grid[estado*LONG*LONG + y*LONG + x].vecinos[6] = &grid[estado*LONG*LONG + (y+1)*LONG + x-1];
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
@@ -290,7 +296,7 @@ __global__ void actualizarVecinos( Celula *grid, int estado ){
 		grid[estado*LONG*LONG + y*LONG + x].vecinos[6] = NULL;	
 	}
 	
-	if ( x-1 >= 0  && grid[estado*LONG*LONG + y*LONG + x-1].cancer /*&& grid[estado][x-1][y].ro < 11 */){
+	if ( x-1 >= 0  && grid[estado*LONG*LONG + y*LONG + x-1].cancer ){
        		grid[estado*LONG*LONG + y*LONG + x].vecinos[7] = &grid[estado*LONG*LONG + y*LONG + x-1];
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
 	} else {
@@ -299,7 +305,7 @@ __global__ void actualizarVecinos( Celula *grid, int estado ){
 }
 
 
-/* Función que añade la probabilidad de que uno de los vecinos no ocurra, y se llama a si misma para añadir el resto de vecinos
+/* Función que añade la probabilidad de que uno de los vecinos no ocurra, y se llama a si misma para añadir el resto de vecinos, partiendo que la célula actual no es cancerígena
 	@param elegido: Número del vecino que tiene probabilidad positiva
 	@param inicio: Número del vecino desde el que empezar a iterar
 	@param vecinos: Número total de vecinos
@@ -316,7 +322,7 @@ __device__ double combinaciones(int elegido, int inicio, int vecinos, int nivel,
 	return p;
 }
 
-/* Función que añade la probabilidad de que uno de los vecinos no ocurra, y se llama a si misma para añadir el resto de vecinos
+/* Función que añade la probabilidad de que uno de los vecinos no ocurra, y se llama a si misma para añadir el resto de vecinos, partiendo que la célula actual es cancerígena
 	@param elegido: Número del vecino que tiene probabilidad positiva
 	@param inicio: Número del vecino desde el que empezar a iterar
 	@param vecinos: Número total de vecinos
@@ -335,6 +341,8 @@ __device__ double combinacionesCancer(int elegido, int inicio, int vecinos, int 
 
 /* Cálculo de la probabilidad de que los vecinos de la celula migren o se reproduzcan donde la célula se encuentra
 	@param cell: Célula en la posición que estamos calculando
+	@param probabilidad_f: Vector donde se van a guardar la probabilidad de cada vecino de generar una célula cancerígena
+	@param cancer: Indicador de si la célula actual es cancerígena o no
 	@return: Vector con los valores de las probabilidades de los vecinos de migrar o reproducirse en el sitio de la célula
 */
 __device__ void calculoProbabilidadVecinos(Celula &cell, double * probabilidad_f, int cancer){
@@ -343,7 +351,7 @@ __device__ void calculoProbabilidadVecinos(Celula &cell, double * probabilidad_f
 	 //Vector final con las probabilidades múltiplicadas
 	int vec = 0;
 	
-	
+	// Para cada vecino, si no es nulo, se cálcula la probabilidad propia de generar una célula cancerígena en la actual
 	for( int j = 0 ; j < 8; j++){
 		if( cell.vecinos[j] != NULL ){ 
 			probabilidad_v[vec] = (cell.vecinos[j]->P_migra + cell.vecinos[j]->P_repro) / (8.0 - cell.vecinos[j]->n_vecinos + cancer);
@@ -351,7 +359,7 @@ __device__ void calculoProbabilidadVecinos(Celula &cell, double * probabilidad_f
 			
 		}
 	}
-	
+	// Para cada vecino tumoral, se añade la probabilidad de que se genere una célula cancerígena en la actual.
 	for( int i = 0; i < cell.n_vecinos; i++){
 		if(cancer == 0){
 			probabilidad_f[i] = probabilidad_v[i]*(FACTORIAL[cell.n_vecinos-1] + combinaciones( i, 0, cell.n_vecinos, 1, probabilidad_v) ) / (double)FACTORIAL[cell.n_vecinos];
@@ -363,24 +371,28 @@ __device__ void calculoProbabilidadVecinos(Celula &cell, double * probabilidad_f
 }
 
 /* Función de transición de cada célula, utilizando las células adyacentes se cálcula el valor en la siguiente iteración
+	@param *grid:  Rejilla donde se está simulando el crecimiento tumoral
 	@param estado: Entero 0 o 1 que nos indica en cual de los dos grid trabajamos
 	@param *state: Vector de direcciones donde guardar el estado del generador para cada hilo  
 */
-__global__ void funcionTransicion( Celula *grid, int estado, curandState *state, int ti, int bi){
+__global__ void funcionTransicion( Celula *grid, int estado, curandState *state){
 	//Variables auxiliares
 	double p_auxiliar, p_acumulada, p_obtenida;
 	double p_vecinos[8];
 	int vecino;
+	//Coordenadas actuales
+	int x = threadIdx.x;
+	int y = blockIdx.x;
 	
-	//int x = blockIdx.x * blockDim.x + threadIdx.x;
-	//int y = blockIdx.y * blockDim.y + threadIdx.y;
-	int x = ti + threadIdx.x;
-	int y = bi + blockIdx.x;
+	volatile int rand;
+	//Coordenadas traducidas para usar en la rejilla
+	volatile int cellActual;
+	volatile int cellIterSig;
 	
-	int rand = x + y * LONG;
-	
-	volatile int cellActual = estado*LONG*LONG + y*LONG + x;
-	volatile int cellIterSig = ((estado+1)%2)*LONG*LONG + y*LONG + x;
+	for( int rep = 0; rep < 64; rep++){
+		cellActual = estado*LONG*LONG + x*LONG + y*64 + rep;
+		cellIterSig = ((estado+1)%2)*LONG*LONG + x*LONG + y*64 + rep;
+		rand = rep + y*64 + x * LONG;
 	
 	if( grid[cellActual].cancer ){ //Si la célula es cancerígena
 		if( grid[cellActual].n_vecinos > 0 ){ //Si tiene vecinos cancerígenos
@@ -412,11 +424,11 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state,
 					p_obtenida = curand_uniform(&state[rand]);
 					for(int indice_vecinos = 0; indice_vecinos < 8; indice_vecinos ++){
 						if( grid[cellActual].vecinos[indice_vecinos] != NULL && vecino == 0){
+							grid[cellIterSig].assign(grid[cellActual].vecinos[indice_vecinos]->cancer, grid[cellActual].vecinos[indice_vecinos]->cct, grid[cellActual].vecinos[indice_vecinos]->ro, grid[cellActual].vecinos[indice_vecinos]->mu, grid[cellActual].vecinos[indice_vecinos]->alpha);
+							
 							if( grid[cellActual].vecinos[indice_vecinos]->ro > 10 && curand_uniform(&state[rand]) > PS){
 								grid[cellIterSig].assign(true, grid[cellActual].vecinos[indice_vecinos]->cct, ROMAX, grid[cellActual].vecinos[indice_vecinos]->mu, ALPHAMAX);
-							} else 
-								grid[cellIterSig].assign(grid[cellActual].vecinos[indice_vecinos]->cancer, grid[cellActual].vecinos[indice_vecinos]->cct, grid[cellActual].vecinos[indice_vecinos]->ro, grid[cellActual].vecinos[indice_vecinos]->mu, grid[cellActual].vecinos[indice_vecinos]->alpha);
-							
+							}
 							indice_vecinos = 8;
 							
 						}else if(grid[cellActual].vecinos[indice_vecinos] != NULL)
@@ -459,32 +471,30 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state,
 				} //Copiamos la célula 
 				for(int indice_vecinos = 0; indice_vecinos < 8; indice_vecinos ++){
 					if( grid[cellActual].vecinos[indice_vecinos] != NULL && vecino == 0){
+						grid[cellIterSig].assign(grid[cellActual].vecinos[indice_vecinos]->cancer, grid[cellActual].vecinos[indice_vecinos]->cct, grid[cellActual].vecinos[indice_vecinos]->ro, grid[cellActual].vecinos[indice_vecinos]->mu, grid[cellActual].vecinos[indice_vecinos]->alpha);
+						
 						if( grid[cellActual].vecinos[indice_vecinos]->ro > 10 && curand_uniform(&state[rand]) > PS){
 							grid[cellIterSig].assign(true, grid[cellActual].vecinos[indice_vecinos]->cct, ROMAX, grid[cellActual].vecinos[indice_vecinos]->mu, ALPHAMAX);
-						} else 
-							grid[cellIterSig].assign(grid[cellActual].vecinos[indice_vecinos]->cancer, grid[cellActual].vecinos[indice_vecinos]->cct, grid[cellActual].vecinos[indice_vecinos]->ro, grid[cellActual].vecinos[indice_vecinos]->mu, grid[cellActual].vecinos[indice_vecinos]->alpha);
-						
-						indice_vecinos = 8;									
-						//if( curand_uniform(&state[rand]) < grid[cellIterSig].P_repro )
-						//	grid[cellIterSig].decreaseRo();
+						}
+						indice_vecinos = 8;			
 						
 					}else if(grid[cellActual].vecinos[indice_vecinos] != NULL)
 						vecino --;
 				}
-				if( x == threadInf ){ threadInf = x - 1;}
-				if( x == threadSup ){ threadSup = x + 1;}
-				if( y == blockSup ){ blockSup = y + 1;} 
-				if( y == blockInf ){ blockInf = y - 1;}
 			}else{
 				grid[cellIterSig].assign(false, 0.0, 0.0, 0.0, 0.0);
 			}
 		} else { // P = 0; Sin cancer cercano, se mantiene igual
 			grid[cellIterSig].assign(false, 0.0, 0.0, 0.0, 0.0);
 		}
-	}	
+	}
+	}
 }
 
-//Falta comprobar que las alteraciones están en los límites
+/*Kernel encargado de comprobar que la célula madre de la iteración pasada desaparece por el cálculo probabilístico
+	@param grid: Grid de células donde se simula el crecimiento del tumor
+	@param estado: Indicador de cual de las dos rejillas es la actual
+*/
 __global__ void comprobarMadre( Celula *grid, int estado ){
 	int x = Madre.x;
 	int y = Madre.y;
@@ -519,9 +529,8 @@ __global__ void comprobarMadre( Celula *grid, int estado ){
 	}
 }
 
-/* Simulación durante 50 días, con 24 pasos por día del crecimiento de un tumor en un grid.
-	@param matriz: Vector con todas las posibles coordenadas que tiene el grid
-	@param rejilla: Grid de células donde se va a simular el crecimiento del tumor
+
+/* Simulación durante NUM_DIAS días, con PASOS iteracioens por día del crecimiento de un tumor en un grid.
 */
 int simulacion_cancer( ){
 	// Inicializamos el grid de Células
@@ -556,26 +565,19 @@ int simulacion_cancer( ){
 	Madre.y = (LONG - 1)/2;
 	h_grid[0][Madre.y][Madre.x] = cell;
 	
-	
+	//Copiamos el grid en la GPU
     	Celula *d_grid;
     	cudaMalloc(&d_grid, 2*LONG*LONG*sizeof(Celula));
     	cudaMemcpy(d_grid, h_grid[0][0], 2*LONG*LONG*sizeof(Celula), cudaMemcpyHostToDevice);
     	
 	int indice_rejilla = 0;
-	int pasos = 24, sudo_cont=0;
+	int sudo_cont=0;
 	
 	ofstream myfile;
 	string file;
 	
-	blockInf = Madre.y - 63;
-	blockSup = Madre.y + 64;
-	threadInf = Madre.x - 63;
-	threadSup = Madre.x + 64;
-	
-	//const dim3 threadsPerBlock(32, 32);
-	//const dim3 blockCount(32, 32);
-	int threads = threadSup - threadInf + 1;
-	int blocks = blockSup - blockInf + 1;
+	//const dim3 threadsPerBlock(16, 16);
+	//const dim3 blockCount (64, 64);
 	const unsigned int totalThreads = LONG*LONG;
 	curandState *devStates;
 	cudaMalloc((void **)&devStates, totalThreads * sizeof(curandState));
@@ -593,19 +595,14 @@ int simulacion_cancer( ){
 	for( int dia = 1; dia <= NUM_DIAS; dia++){
 		//En cada día 24 pasos
 		for (int paso = 0; paso < pasos; paso++){
-			cudaDeviceSynchronize();
-			threads = 1 + threadSup - threadInf;
-			blocks = 1 + blockSup - blockInf;
 			//Actualizamos el indice de rejillas
 			indice_rejilla = paso % 2;
 			
 			actualizarVecinos <<< LONG, LONG>>> (d_grid, indice_rejilla);
 			
-			funcionTransicion <<< blocks, threads>>> (d_grid, indice_rejilla, devStates, threadInf, blockInf);
+			funcionTransicion <<< 16, LONG>>> (d_grid, indice_rejilla, devStates);
 			
 			comprobarMadre <<< 1, 1 >>>( d_grid, (indice_rejilla+1)%2);
-			
-			
 			
 		}
 		cudaDeviceSynchronize();
@@ -618,7 +615,7 @@ int simulacion_cancer( ){
 						
 			myfile.open( file );
 	  		if (myfile.is_open()){
-	  			myfile << LONG << " " << threadInf << " " << threadSup << " " << blockInf << " " << blockSup << " " << "\n";
+	  			myfile << LONG << "\n";
 	  			for( int filas = 0; filas < LONG; filas++ ){
 	  				for ( int columnas = 0; columnas < LONG; columnas++){
 		  				if( h_grid[(indice_rejilla+1)%2][filas][columnas].cancer ){
@@ -630,11 +627,10 @@ int simulacion_cancer( ){
 	    			myfile.close();
 	  		} else cout << "Unable to open file TABLE";
 		  	
-		  	
 			cout << "Día: " << dia << endl;
 			cout << "Numero de celulas: "<< sudo_cont << endl;  
 	  	}
-	  		
+	  	
   		file = "TIMES/tiempos.txt";
 		myfile.open( file, ios::app );
   		if (myfile.is_open()){
@@ -655,11 +651,11 @@ int simulacion_cancer( ){
 
 
 
-int main(){
+int main(){ 
 	FACTORIAL[0] = 1;
-	for(int i = 1; i < 9; i++ )
+	for(int i = 1; i < 9; i++){
 		FACTORIAL[i] = FACTORIAL[i-1] * i;
-
+	}	
 	//Inicializamos 
 	Random::seed(1);
     	
