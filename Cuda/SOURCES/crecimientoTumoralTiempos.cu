@@ -405,7 +405,6 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state)
 							vec = grid[cellActual].n_vecinos;
 						}
 					} //Copiamos la célula 
-					p_obtenida = curand_uniform(&state[rand]);
 					for(int indice_vecinos = 0; indice_vecinos < 8; indice_vecinos ++){
 						if( grid[cellActual].vecinos[indice_vecinos] != NULL && vecino == 0){
 							grid[cellIterSig].assign(grid[cellActual].vecinos[indice_vecinos]->cancer, grid[cellActual].vecinos[indice_vecinos]->cct, grid[cellActual].vecinos[indice_vecinos]->ro, grid[cellActual].vecinos[indice_vecinos]->mu, grid[cellActual].vecinos[indice_vecinos]->alpha);

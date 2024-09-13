@@ -2,7 +2,7 @@ ct:
 	clear
 	nvcc --generate-line-info SOURCES/crecimientoTumoral.cu -o BIN/ct
 	
-ctTiempos: 
+ct2: 
 	nvcc --generate-line-info SOURCES/crecimientoTumoralTiempos.cu -o BIN/ct
 
 ctDLB: 
@@ -21,7 +21,7 @@ exe:
 	
 run: ct rm exe
 
-run2: ct2 rm exe
+runTiempos: ct2 rm exe
 	
 runDLB: ctDLB rm exe
 	
