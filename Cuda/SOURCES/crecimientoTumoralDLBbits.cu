@@ -22,6 +22,10 @@ static const double T = (1/24.0);
 static const double ROMAX = 10.0;
 //Probabilidad máxima de muerte
 static const double ALPHAMAX = 0.01;
+//Calculo de migración
+static const double CCT = 24.0;
+//Calculo de Reproducción
+static const double MU = 100.0;
 
 //Tamaño del grid
 static const int LONG = 1024;
@@ -37,25 +41,18 @@ __device__ __managed__ int FACTORIAL[9];
 class Celula {
 	
 	public:
-	//Indica si es cancerigena o no
-	bool cancer = false;
-	//Cálculo de migración
-	double cct;
 	//Nº de reproducciones
 	double ro;
-	//Cálculo de Reproducción
-	double mu;
-	//Prababilidad de muerte
-	double alpha;
+	// Probabilidades de esta célula de morir, migrar o reproducirse respectivamente
+	double P_migra;
+	double P_repro;	
 	//Numero de vecinos cancerigenos
 	int n_vecinos;
 	//Referencias a los vecinos cancerigenos o NULL en otro caso
-	Celula * vecinos[8];
-	
-	// Probabilidades de esta célula de morir, migrar o reproducirse respectivamente
-	double P_morir;
-	double P_migra;
-	double P_repro;	
+	char bitvec;
+	//Indica si es cancerigena o no
+	bool cancer = false;
+
 	
 	/* Inicializa la célula con los valores que se le pasa por referencia, se establecen los vecinos a 0 y se calcula las probabilidades de morir, migrar o reproducirse
 	@param c: Booleano que indica si la célula es cancerígena
@@ -64,12 +61,9 @@ class Celula {
 	@param m: Parametro usado para el cálculo de la probabilidad de reproducción
 	@param a: Parametro usado para el cálculo de la probabilidad de morir
 	*/
-	__host__ __device__ Celula (bool c, double cc, double r, double m, double a){
+	__host__ __device__ Celula (bool c, double r){
 		cancer = c;
-		cct = cc;
 		ro = r;
-		mu = m;
-		alpha = a;
 		//n_vecinos = 0;
 		
 		//vecinos[0] = NULL;
@@ -89,43 +83,21 @@ class Celula {
 	*/
 	__host__ __device__ Celula (const Celula &cell){
 		cancer = cell.cancer;
-		cct = cell.cct;
 		ro = cell.ro;
-		mu = cell.mu;
-		alpha = cell.alpha;
 		n_vecinos = cell.n_vecinos;
-		P_morir = cell.P_morir;
 		P_migra = cell.P_migra;
 		P_repro = cell.P_repro;
 		
-		vecinos[0] = NULL;
-		vecinos[1] = NULL;
-		vecinos[2] = NULL;
-		vecinos[3] = NULL;
-		vecinos[4] = NULL;
-		vecinos[5] = NULL;
-		vecinos[6] = NULL;
-		vecinos[7] = NULL;
 	}
 	
 	/* Inicializa la célula como no cancerígena y con todos los valores a 0
 	*/
 	__host__ __device__ Celula (){
 		cancer = false;
-		cct = 0.0;
 		ro = 0.0;
-		mu = 0.0;
-		alpha = 0.0;
 		n_vecinos = 0;
+		bitvec &= (0<<0);
 		calculoProbabilidades();
-		vecinos[0] = NULL;
-		vecinos[1] = NULL;
-		vecinos[2] = NULL;
-		vecinos[3] = NULL;
-		vecinos[4] = NULL;
-		vecinos[5] = NULL;
-		vecinos[6] = NULL;
-		vecinos[7] = NULL;
 	}
 	
 	/*Definición del operador de asignación, copia los valores de los parametros de la celula a la derecha del operador
@@ -133,22 +105,10 @@ class Celula {
 	*/
 	Celula& operator=( const Celula* cell){
 		cancer = cell->cancer;
-		cct = cell->cct;
 		ro = cell->ro;
-		mu = cell->mu;
-		alpha = cell->alpha;
 		n_vecinos = 0;
-		P_morir = cell->P_morir;
 		P_migra = cell->P_migra;
 		P_repro = cell->P_repro;
-		vecinos[0] = NULL;
-		vecinos[1] = NULL;
-		vecinos[2] = NULL;
-		vecinos[3] = NULL;
-		vecinos[4] = NULL;
-		vecinos[5] = NULL;
-		vecinos[6] = NULL;
-		vecinos[7] = NULL;
 		return *this;
 	}
 	
@@ -159,12 +119,9 @@ class Celula {
 	@param m:  Nuevo valor de mu
 	@param a:  Nuevo valor de alpha
 	*/
-	__device__ void assign( bool c, double cc, double r, double m, double a ){
+	__device__ void assign( bool c, double r){
 		cancer = c;
-		cct = cc;
 		ro = r;
-		mu = m;
-		alpha = a;
 		
 		calculoProbabilidades();
 	}
@@ -173,16 +130,20 @@ class Celula {
 	*/	
 	__host__ __device__ void calculoProbabilidades(){
 		double pd = 0.0; 
-		if( cct > 0 ){
-			pd = (24.0/cct)*T;
+		if( cancer ){
+			pd = (24.0/CCT)*T;
 		} 
-		double migrar = (1-pd)*(mu*T);
+		double migrar = (1-pd)*(MU*T);
 		if( ro <= 0){
 			pd = 0.0;
 		}
+		double p_total;
+		if( ro > 10 ){
+			p_total = migrar + pd;
+		} else {
+			p_total = ALPHAMAX + migrar + pd;
+		}
 		//Con la suma de los valores de pd, migrar y alpha se calculan las probabilidades de reproducirse, migrar y morir respectivamente
-		double p_total = alpha + migrar + pd;
-		P_morir = alpha/p_total;
 		P_migra = migrar/p_total;
 		P_repro = pd/p_total;
 	}
@@ -196,7 +157,32 @@ class Celula {
 		ro --;
 		if(ro == 0)
 			calculoProbabilidades();
-	}	
+	}
+	
+	__device__ Celula* vecino( int vec, int rand, Celula *grid, int estado ){
+		if( vec == 0 ){
+			return &grid[estado*LONG*LONG + rand - LONG - 1];
+		} else if ( vec == 1 ){
+			return &grid[estado*LONG*LONG + rand - LONG ];
+		} else if ( vec == 2 ){
+			return &grid[estado*LONG*LONG + rand - LONG + 1];
+		} else if ( vec == 3 ){
+			return &grid[estado*LONG*LONG + rand + 1];
+		} else if ( vec == 4 ){
+			return &grid[estado*LONG*LONG + rand + LONG + 1];
+		} else if ( vec == 5 ){
+			return &grid[estado*LONG*LONG + rand + LONG ];
+		} else if ( vec == 6 ){
+			return &grid[estado*LONG*LONG + rand + LONG - 1];
+		} else if ( vec == 7 ){
+			return &grid[estado*LONG*LONG + rand - 1];
+		}
+		return NULL;
+	}
+	
+	__device__ double getSum(){
+		return P_repro + P_migra;
+	}
 };
 
 
@@ -241,66 +227,66 @@ __global__ void actualizarVecinos( Celula *grid, int estado ){
 	
 	//Desde la esquina superior izquierda, recorriendo las 8 posiciones circundantes en sentido horario, se comprueba que no hay células cancerígenas.
 	if (  x-1 >= 0  && y-1 >= 0 && grid[estado*LONG*LONG + (y-1)*LONG + x-1].cancer ){
-       		grid[estado*LONG*LONG + y*LONG + x].vecinos[0] = &grid[estado*LONG*LONG + (y-1)*LONG + x-1];
+       		grid[estado*LONG*LONG + y*LONG + x].bitvec |= (1 << 0);
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
 	} else {
-		grid[estado*LONG*LONG + y*LONG + x].vecinos[0] = NULL;	
+		grid[estado*LONG*LONG + y*LONG + x].bitvec &= ~(1 << 0);	
 	}
 	
 	if ( y-1 >= 0 && grid[estado*LONG*LONG + (y-1)*LONG + x].cancer ){
-       		grid[estado*LONG*LONG + y*LONG + x].vecinos[1] = &grid[estado*LONG*LONG + (y-1)*LONG + x];
+       		grid[estado*LONG*LONG + y*LONG + x].bitvec |= (1 << 1);
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
 	} else {
-		grid[estado*LONG*LONG + y*LONG + x].vecinos[1] = NULL;	
+		grid[estado*LONG*LONG + y*LONG + x].bitvec &= ~(1 << 1);	
 	}
 	
 	if ( y-1 >= 0 && x+1 < LONG && grid[estado*LONG*LONG + (y-1)*LONG + x+1].cancer ){
-       		grid[estado*LONG*LONG + y*LONG + x].vecinos[2] = &grid[estado*LONG*LONG + (y-1)*LONG + x+1];
+       		grid[estado*LONG*LONG + y*LONG + x].bitvec |= (1 << 2);
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
 	} else {
-		grid[estado*LONG*LONG + y*LONG + x].vecinos[2] = NULL;	
+		grid[estado*LONG*LONG + y*LONG + x].bitvec &= ~(1 << 2);
 	}
 	
 	if ( x+1 < LONG && grid[estado*LONG*LONG + y*LONG + x+1].cancer ){
-       		grid[estado*LONG*LONG + y*LONG + x].vecinos[3] = &grid[estado*LONG*LONG + y*LONG + x+1];
+       		grid[estado*LONG*LONG + y*LONG + x].bitvec |= (1 << 3);
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
 	} else {
-		grid[estado*LONG*LONG + y*LONG + x].vecinos[3] = NULL;	
+		grid[estado*LONG*LONG + y*LONG + x].bitvec &= ~(1 << 3);	
 	}
 	
 	if ( x+1 < LONG && y+1 < LONG && grid[estado*LONG*LONG + (y+1)*LONG + x+1].cancer ){
-       		grid[estado*LONG*LONG + y*LONG + x].vecinos[4] = &grid[estado*LONG*LONG + (y+1)*LONG + x+1];
+       		grid[estado*LONG*LONG + y*LONG + x].bitvec |= (1 << 4);
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
 	} else {
-		grid[estado*LONG*LONG + y*LONG + x].vecinos[4] = NULL;	
+		grid[estado*LONG*LONG + y*LONG + x].bitvec &= ~(1 << 4);	
 	}
 	
 	if ( y+1 < LONG && grid[estado*LONG*LONG + (y+1)*LONG + x].cancer ){
-       		grid[estado*LONG*LONG + y*LONG + x].vecinos[5] = &grid[estado*LONG*LONG + (y+1)*LONG + x];
+       		grid[estado*LONG*LONG + y*LONG + x].bitvec |= (1 << 5);
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
 	} else {
-		grid[estado*LONG*LONG + y*LONG + x].vecinos[5] = NULL;	
+		grid[estado*LONG*LONG + y*LONG + x].bitvec &= ~(1 << 5);
 	}
 	
 	if ( x-1 >= 0  && y+1 < LONG && grid[estado*LONG*LONG + (y+1)*LONG + x-1].cancer ){
-       		grid[estado*LONG*LONG + y*LONG + x].vecinos[6] = &grid[estado*LONG*LONG + (y+1)*LONG + x-1];
+       		grid[estado*LONG*LONG + y*LONG + x].bitvec |= (1 << 6);
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
        		
 	} else {
-		grid[estado*LONG*LONG + y*LONG + x].vecinos[6] = NULL;	
+		grid[estado*LONG*LONG + y*LONG + x].bitvec &= ~(1 << 6);	
 	}
 	
 	if ( x-1 >= 0  && grid[estado*LONG*LONG + y*LONG + x-1].cancer ){
-       		grid[estado*LONG*LONG + y*LONG + x].vecinos[7] = &grid[estado*LONG*LONG + y*LONG + x-1];
+       		grid[estado*LONG*LONG + y*LONG + x].bitvec |= (1 << 7);
        		grid[estado*LONG*LONG + y*LONG + x].n_vecinos++;
 	} else {
-		grid[estado*LONG*LONG + y*LONG + x].vecinos[7] = NULL;	
+		grid[estado*LONG*LONG + y*LONG + x].bitvec &= ~(1 << 7);	
 	}
 }
 
@@ -345,7 +331,7 @@ __device__ double combinacionesCancer(int elegido, int inicio, int vecinos, int 
 	@param cancer: Indicador de si la célula actual es cancerígena o no
 	@return: Vector con los valores de las probabilidades de los vecinos de migrar o reproducirse en el sitio de la célula
 */
-__device__ void calculoProbabilidadVecinos(Celula &cell, double * probabilidad_f, int cancer){
+__device__ void calculoProbabilidadVecinos(Celula &cell, double * probabilidad_f, int cancer, int rand, Celula *grid, int estado ){
 	
 	double probabilidad_v[8]; //Vector donde se van a guardar las probabilidades de los vecinos
 	 //Vector final con las probabilidades múltiplicadas
@@ -353,8 +339,8 @@ __device__ void calculoProbabilidadVecinos(Celula &cell, double * probabilidad_f
 	
 	// Para cada vecino, si no es nulo, se cálcula la probabilidad propia de generar una célula cancerígena en la actual
 	for( int j = 0 ; j < 8; j++){
-		if( cell.vecinos[j] != NULL ){ 
-			probabilidad_v[vec] = (cell.vecinos[j]->P_migra + cell.vecinos[j]->P_repro) / (8.0 - cell.vecinos[j]->n_vecinos + cancer);
+		if( cell.bitvec & (1 << j) ){ 
+			probabilidad_v[vec] = cell.vecino(j, rand, grid, estado)->getSum() / (8.0 - cell.vecino(j, rand, grid, estado)->n_vecinos + cancer);
 			vec++;
 			
 		}
@@ -379,10 +365,10 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state)
 	//Variables auxiliares
 	double p_auxiliar, p_acumulada, p_obtenida;
 	double p_vecinos[8];
-	int vecino;
+	volatile int vecino;
 	//Coordenadas actuales
-	int x = threadIdx.x;
-	int y = blockIdx.x;
+	volatile int x = threadIdx.x;
+	volatile int y = blockIdx.x;
 	
 	volatile int rand;
 	//Coordenadas traducidas para usar en la rejilla
@@ -409,11 +395,11 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state)
 	if( grid[cellActual].cancer ){ //Si la célula es cancerígena
 		if( grid[cellActual].n_vecinos > 0 ){ //Si tiene vecinos cancerígenos
 			if( grid[cellActual].n_vecinos == 8){ // P=1 Quiescencia, se mantiene igual
-				grid[cellIterSig].assign(true, grid[cellActual].cct, grid[cellActual].ro, grid[cellActual].mu, grid[cellActual].alpha);
+				grid[cellIterSig].assign(true, grid[cellActual].ro);
 			} else {
 				//Se cálcula las probabilidades de cada vecino
 				p_auxiliar = 0.0;
-				calculoProbabilidadVecinos(grid[cellActual], p_vecinos, 1);	
+				calculoProbabilidadVecinos(grid[cellActual], p_vecinos, 1, rand, grid, estado);	
 				for( int vec = 0; vec < grid[cellActual].n_vecinos; vec ++){
 					p_auxiliar += p_vecinos[vec]; }
 				
@@ -422,7 +408,7 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state)
 				p_obtenida = curand_uniform(&state[rand]);
 				
 				if( p_obtenida < grid[cellActual].P_repro ){ //Si la célula actual se reproduce
-					grid[cellIterSig].assign(true, grid[cellActual].cct, grid[cellActual].ro, grid[cellActual].mu, grid[cellActual].alpha);
+					grid[cellIterSig].assign(true, grid[cellActual].ro);
 				} else if( p_obtenida < p_acumulada ){ //Si otra célula ocupa este sitio
 					
 					p_auxiliar = grid[cellActual].P_repro;
@@ -434,19 +420,19 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state)
 						}
 					} //Copiamos la célula 
 					for(int indice_vecinos = 0; indice_vecinos < 8; indice_vecinos ++){
-						if( grid[cellActual].vecinos[indice_vecinos] != NULL && vecino == 0){
-							grid[cellIterSig].assign(grid[cellActual].vecinos[indice_vecinos]->cancer, grid[cellActual].vecinos[indice_vecinos]->cct, grid[cellActual].vecinos[indice_vecinos]->ro, grid[cellActual].vecinos[indice_vecinos]->mu, grid[cellActual].vecinos[indice_vecinos]->alpha);
+						if( (grid[cellActual].bitvec & (1 << indice_vecinos)) && vecino == 0){
+							grid[cellIterSig].assign(grid[cellActual].vecino(indice_vecinos, rand, grid, estado)->cancer, grid[cellActual].vecino(indice_vecinos, rand, grid, estado)->ro);
 							
-							if( grid[cellActual].vecinos[indice_vecinos]->ro > 10 && curand_uniform(&state[rand]) > PS){
-								grid[cellIterSig].assign(true, grid[cellActual].vecinos[indice_vecinos]->cct, ROMAX, grid[cellActual].vecinos[indice_vecinos]->mu, ALPHAMAX);
+							if( grid[cellActual].vecino(indice_vecinos, rand, grid, estado)->ro > 10 && curand_uniform(&state[rand]) > PS){
+								grid[cellIterSig].assign(true, ROMAX);
 							}
 							indice_vecinos = 8;
 							
-						}else if(grid[cellActual].vecinos[indice_vecinos] != NULL)
+						}else if( (grid[cellActual].bitvec & (1 << indice_vecinos)) )
 							vecino --;
 					}
 				}else{
-					grid[cellIterSig].assign(false, 0.0, 0.0, 0.0, 0.0);
+					grid[cellIterSig].assign(false, 0.0);
 				}
 			}
 		} else { // Tiene cancer y no tiene vecinas cancerígenas
@@ -455,9 +441,9 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state)
 			
 			if( p_obtenida < grid[cellActual].P_repro ){
 				//grid[cellActual].decreaseRo();
-				grid[cellIterSig].assign(true, grid[cellActual].cct, grid[cellActual].ro, grid[cellActual].mu, grid[cellActual].alpha);
+				grid[cellIterSig].assign(true, grid[cellActual].ro);
 			}else{
-				grid[cellIterSig].assign(false, 0.0, 0.0, 0.0, 0.0);
+				grid[cellIterSig].assign(false, 0.0);
 			}
 				
 		}
@@ -465,7 +451,7 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state)
 		if( grid[cellActual].n_vecinos > 0 ){ //Si tiene celulas cancerígenas alrededor
 			//Se cálcula las probabilidades de cada vecino
 			p_auxiliar = 0.0;
-			calculoProbabilidadVecinos(grid[cellActual], p_vecinos, 0);	
+			calculoProbabilidadVecinos(grid[cellActual], p_vecinos, 0, rand, grid, estado);	
 			for( int vec = 0; vec < grid[cellActual].n_vecinos; vec ++){
 				p_auxiliar += p_vecinos[vec];  }
 			//Se calcula la probabilidad total de la posición de que haya una célula en la iteración siguiente
@@ -481,22 +467,22 @@ __global__ void funcionTransicion( Celula *grid, int estado, curandState *state)
 					}
 				} //Copiamos la célula 
 				for(int indice_vecinos = 0; indice_vecinos < 8; indice_vecinos ++){
-					if( grid[cellActual].vecinos[indice_vecinos] != NULL && vecino == 0){
-						grid[cellIterSig].assign(grid[cellActual].vecinos[indice_vecinos]->cancer, grid[cellActual].vecinos[indice_vecinos]->cct, grid[cellActual].vecinos[indice_vecinos]->ro, grid[cellActual].vecinos[indice_vecinos]->mu, grid[cellActual].vecinos[indice_vecinos]->alpha);
+					if( (grid[cellActual].bitvec & (1 << indice_vecinos)) && vecino == 0){
+						grid[cellIterSig].assign(grid[cellActual].vecino(indice_vecinos, rand, grid, estado)->cancer, grid[cellActual].vecino(indice_vecinos, rand, grid, estado)->ro);
 						
-						if( grid[cellActual].vecinos[indice_vecinos]->ro > 10 && curand_uniform(&state[rand]) > PS){
-							grid[cellIterSig].assign(true, grid[cellActual].vecinos[indice_vecinos]->cct, ROMAX, grid[cellActual].vecinos[indice_vecinos]->mu, ALPHAMAX);
+						if( grid[cellActual].vecino(indice_vecinos, rand, grid, estado)->ro > 10 && curand_uniform(&state[rand]) > PS){
+							grid[cellIterSig].assign(true, ROMAX);
 						}
-						indice_vecinos = 8;			
+						indice_vecinos = 8;
 						
-					}else if(grid[cellActual].vecinos[indice_vecinos] != NULL)
+					}else if( (grid[cellActual].bitvec & (1 << indice_vecinos)) )
 						vecino --;
 				}
 			}else{
-				grid[cellIterSig].assign(false, 0.0, 0.0, 0.0, 0.0);
+				grid[cellIterSig].assign(false, 0.0);
 			}
 		} else { // P = 0; Sin cancer cercano, se mantiene igual
-			grid[cellIterSig].assign(false, 0.0, 0.0, 0.0, 0.0);
+			grid[cellIterSig].assign(false, 0.0);
 		}
 	}
 	}
@@ -535,7 +521,7 @@ __global__ void comprobarMadre( Celula *grid, int estado ){
 			Madre.x = x-1;
 			
 		}else{
-			grid[estado*LONG*LONG + y*LONG + x].assign(true, 24.0, 100000.0, 100.0, 0.0);
+			grid[estado*LONG*LONG + y*LONG + x].assign(true, 100000.0);
 		}		
 	}
 }
@@ -570,7 +556,7 @@ int simulacion_cancer( ){
     	}
 		
 	//Introducimos en la mitad del grid una célula madre	
-	Celula cell(true, 24.0 , 100000.0 , 100.0, 0.0);
+	Celula cell(true, 100000.0);
 	
 	Madre.x = (LONG - 1)/2;
 	Madre.y = (LONG - 1)/2;

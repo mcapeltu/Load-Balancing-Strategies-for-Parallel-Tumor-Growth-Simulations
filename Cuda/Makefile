@@ -9,6 +9,12 @@ ctDLB:
 	clear
 	nvcc --generate-line-info SOURCES/crecimientoTumoralDLB.cu -o BIN/ct
 	
+ctDLBbits:
+	nvcc --generate-line-info SOURCES/crecimientoTumoralDLBbits.cu -o BIN/ct
+	
+ctbits:
+	nvcc --generate-line-info SOURCES/crecimientoTumoralbits.cu -o BIN/ct	
+	
 rm:
 	rm -f TABLES/*	
 	rm -f IMAGES/*	
@@ -24,6 +30,10 @@ run: ct rm exe
 runTiempos: ct2 rm exe
 	
 runDLB: ctDLB rm exe
+
+runDLBbits: ctDLBbits rm exe
+
+runbits: ctbits rm exe
 	
 clean: rm
 	rm -f BIN/*
