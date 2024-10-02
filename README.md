@@ -43,4 +43,5 @@ Tras estos primeros pasos, hice la implementación del código en C++, donde pud
 Para finalizar con mi trabajo pasé a la implementación de un modelo inspirado en los trabajos previos pero que me permitiera una paralelización en hardware de GPU eficiente. Para ello uso un modelo de AC con cálculo probabilístico que me permite asignarle una hebra a cada célula de la rejilla donde se simula el crecimiento tumoral, aprovechando al máximo el nivel de paralelización que me ofrece CUDA. Una primera implementación se encuentra en la carpeta 'Probabilidad', todavía en C++, y la implementación final en CUDA se encuentra en la carpeta con el mismo nombre.
 
 En todas las carpetas hay una Makefile, donde la instrucción 'make run' ejecutará el programa principal y representará gráficamente el tumor en la carpeta 'Images'
+La carpeta de Cuda contiene diferentes programas en Source, por lo que hay diferentes comandos para compilar cada uno de ellos, estos son: runDLB runbits, runDLBbits
 
