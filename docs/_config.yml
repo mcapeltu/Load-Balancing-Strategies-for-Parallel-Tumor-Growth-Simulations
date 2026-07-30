@@ -1,0 +1,11 @@
+title: "Hotspot-Induced GPU Imbalance"
+description: >
+  Experimental artefacts, profiling results, benchmarks, and implementation
+  details for irregular probabilistic GPU tumour-growth simulations.
+
+theme: jekyll-theme-cayman
+
+markdown: kramdown
+
+github:
+  is_project_page: true
