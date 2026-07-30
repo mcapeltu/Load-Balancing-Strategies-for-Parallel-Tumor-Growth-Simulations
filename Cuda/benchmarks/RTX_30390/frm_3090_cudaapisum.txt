@@ -1,0 +1,12 @@
+Using frm_3090.sqlite export for stats reports.
+Exporting [/usr/lib/x86_64-linux-gnu/nsight-systems/target-linux-x64/reports/cudaapisum.py frm_3090.sqlite] to console... 
+
+ Time(%)  Total Time (ns)  Num Calls     Average      Minimum       Maximum             Name         
+ -------  ---------------  ---------  -------------  ----------  -------------  ---------------------
+    96,0   58.233.986.876        150  388.226.579,0  42.008.883  1.073.475.520  cudaDeviceSynchronize
+     3,0    2.062.628.299         32   64.457.134,0  63.419.887     65.767.128  cudaMemcpy           
+     0,0       46.626.070     10.801        4.316,0       3.495        556.601  cudaLaunchKernel     
+     0,0        1.684.157          2      842.078,0     225.509      1.458.648  cudaMalloc           
+     0,0        1.641.829          2      820.914,0     363.728      1.278.101  cudaFree             
+     0,0           22.999          2       11.499,0       4.590         18.409  cuLaunchKernel       
+

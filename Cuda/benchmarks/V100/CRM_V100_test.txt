@@ -1,0 +1,63 @@
+Día: 1
+Numero de celulas: 30
+Día: 5
+Numero de celulas: 202
+Día: 10
+Numero de celulas: 417
+Día: 15
+Numero de celulas: 603
+Día: 20
+Numero de celulas: 1210
+Día: 25
+Numero de celulas: 1679
+Día: 30
+Numero de celulas: 3314
+Día: 35
+Numero de celulas: 4967
+Día: 40
+Numero de celulas: 7268
+Día: 45
+Numero de celulas: 9838
+Día: 50
+Numero de celulas: 11640
+Día: 55
+Numero de celulas: 13953
+Día: 60
+Numero de celulas: 16858
+Día: 65
+Numero de celulas: 18921
+Día: 70
+Numero de celulas: 23528
+Día: 75
+Numero de celulas: 29077
+Día: 80
+Numero de celulas: 35749
+Día: 85
+Numero de celulas: 40095
+Día: 90
+Numero de celulas: 45736
+Día: 95
+Numero de celulas: 51323
+Día: 100
+Numero de celulas: 56537
+Día: 105
+Numero de celulas: 63121
+Día: 110
+Numero de celulas: 69762
+Día: 115
+Numero de celulas: 75307
+Día: 120
+Numero de celulas: 85393
+Día: 125
+Numero de celulas: 94513
+Día: 130
+Numero de celulas: 102517
+Día: 135
+Numero de celulas: 114711
+Día: 140
+Numero de celulas: 124588
+Día: 145
+Numero de celulas: 132494
+Día: 150
+Numero de celulas: 143972
+Tiempo: 37045

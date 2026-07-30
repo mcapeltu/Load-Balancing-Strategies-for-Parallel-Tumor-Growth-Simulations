@@ -1,0 +1,10 @@
+Using crm_3090.sqlite export for stats reports.
+Exporting [/usr/lib/x86_64-linux-gnu/nsight-systems/target-linux-x64/reports/gpumemtimesum.py crm_3090.sqlite] to console... 
+
+ Time(%)  Total Time (ns)  Operations    Average      Minimum     Maximum                Operation            
+ -------  ---------------  ----------  ------------  ----------  ----------  ---------------------------------
+    96,0    2.002.123.418          31  64.584.626,0  63.406.714  65.845.710  [CUDA memcpy DtoH]               
+     3,0       63.184.155           1  63.184.155,0  63.184.155  63.184.155  [CUDA memcpy HtoD]               
+     0,0           11.550           2       5.775,0       3.583       7.967  [CUDA Unified Memory memcpy HtoD]
+     0,0            7.999           2       3.999,0       1.567       6.432  [CUDA Unified Memory memcpy DtoH]
+

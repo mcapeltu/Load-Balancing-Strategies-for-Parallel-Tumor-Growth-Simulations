@@ -1,0 +1,10 @@
+Using frm_3090.sqlite export for stats reports.
+Exporting [/usr/lib/x86_64-linux-gnu/nsight-systems/target-linux-x64/reports/gpumemtimesum.py frm_3090.sqlite] to console... 
+
+ Time(%)  Total Time (ns)  Operations    Average      Minimum     Maximum                Operation            
+ -------  ---------------  ----------  ------------  ----------  ----------  ---------------------------------
+    96,0    1.986.929.346          31  64.094.495,0  63.185.153  65.380.149  [CUDA memcpy DtoH]               
+     3,0       63.540.863           1  63.540.863,0  63.540.863  63.540.863  [CUDA memcpy HtoD]               
+     0,0           10.495           2       5.247,0       2.847       7.648  [CUDA Unified Memory memcpy HtoD]
+     0,0            7.871           2       3.935,0       1.535       6.336  [CUDA Unified Memory memcpy DtoH]
+

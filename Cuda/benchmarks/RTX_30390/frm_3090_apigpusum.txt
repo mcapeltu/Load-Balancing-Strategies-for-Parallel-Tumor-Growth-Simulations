@@ -1,0 +1,20 @@
+Using frm_3090.sqlite export for stats reports.
+Exporting [/usr/lib/x86_64-linux-gnu/nsight-systems/target-linux-x64/reports/apigpusum.py frm_3090.sqlite] to console... 
+
+ Time(%)  Total Time (ns)  Instances     Average      Minimum       Maximum      Category                         Operation                     
+ -------  ---------------  ---------  -------------  ----------  -------------  -----------  ---------------------------------------------------
+    48,0   58.233.986.876        150  388.226.579,0  42.008.883  1.073.475.520  CUDA_API     cudaDeviceSynchronize                              
+    45,0   55.235.502.994      3.600   15.343.195,0     803.580     49.917.220  CUDA_KERNEL  funcionTransicion(Celula*, int, curandStateXORWOW*)
+     2,0    3.010.891.334      3.600      836.358,0     788.668        922.396  CUDA_KERNEL  actualizarVecinos(Celula*, int)                    
+     1,0    2.062.628.299         32   64.457.134,0  63.419.887     65.767.128  CUDA_API     cudaMemcpy                                         
+     1,0    1.986.929.346         31   64.094.495,0  63.185.153     65.380.149  MEMORY_OPER  [CUDA memcpy DtoH]                                 
+     0,0       63.540.863          1   63.540.863,0  63.540.863     63.540.863  MEMORY_OPER  [CUDA memcpy HtoD]                                 
+     0,0       46.626.070     10.801        4.316,0       3.495        556.601  CUDA_API     cudaLaunchKernel                                   
+     0,0       18.816.039      3.600        5.226,0       2.880         11.489  CUDA_KERNEL  comprobarMadre(Celula*, int)                       
+     0,0        7.480.987          1    7.480.987,0   7.480.987      7.480.987  CUDA_KERNEL  setup_kernel(curandStateXORWOW*)                   
+     0,0        1.684.157          2      842.078,0     225.509      1.458.648  CUDA_API     cudaMalloc                                         
+     0,0        1.641.829          2      820.914,0     363.728      1.278.101  CUDA_API     cudaFree                                           
+     0,0           22.999          2       11.499,0       4.590         18.409  CUDA_API     cuLaunchKernel                                     
+     0,0           10.495          2        5.247,0       2.847          7.648  MEMORY_OPER  [CUDA Unified Memory memcpy HtoD]                  
+     0,0            7.871          2        3.935,0       1.535          6.336  MEMORY_OPER  [CUDA Unified Memory memcpy DtoH]                  
+

@@ -1,0 +1,11 @@
+Generating SQLite file frm_3090.sqlite from frm_3090.qdrep
+Using frm_3090.sqlite export for stats reports.
+Exporting [/usr/lib/x86_64-linux-gnu/nsight-systems/target-linux-x64/reports/gpukernsum.py frm_3090.sqlite] to console... 
+
+ Time(%)  Total Time (ns)  Instances    Average      Minimum    Maximum                           Name                        
+ -------  ---------------  ---------  ------------  ---------  ----------  ---------------------------------------------------
+    94,0   55.235.502.994      3.600  15.343.195,0    803.580  49.917.220  funcionTransicion(Celula*, int, curandStateXORWOW*)
+     5,0    3.010.891.334      3.600     836.358,0    788.668     922.396  actualizarVecinos(Celula*, int)                    
+     0,0       18.816.039      3.600       5.226,0      2.880      11.489  comprobarMadre(Celula*, int)                       
+     0,0        7.480.987          1   7.480.987,0  7.480.987   7.480.987  setup_kernel(curandStateXORWOW*)                   
+
