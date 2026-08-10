@@ -1,0 +1,14 @@
+# Compiled binaries
+Cuda/BIN/ct_CRM
+Cuda/BIN/ct_FRM
+
+# Generated benchmark results
+Cuda/RESULTS/
+Cuda/SOURCES/RESULTS/
+
+# Jupyter temporary files
+.ipynb_checkpoints/
+
+# Generic build artefacts
+*.o
+*.out
