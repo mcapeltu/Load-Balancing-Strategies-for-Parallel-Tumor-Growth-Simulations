@@ -12,3 +12,9 @@ Cuda/SOURCES/RESULTS/
 # Generic build artefacts
 *.o
 *.out
+# figures that can be created from specific scripts
+Cuda/poster_figures/
+Cuda/transition_kernel_vs_iterations.pdf
+Cuda/transition_kernel_vs_iterations.png
+Cuda/tumour_cells_vs_days.pdf
+Cuda/tumour_cells_vs_days.png
