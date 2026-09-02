@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{Robustness of the hotspot descriptor to spatial partition granularity. 
+$R_{\mathrm{FRM/CRM}}=T_{\mathrm{FRM}}/T_{\mathrm{CRM}}$. 
+Cross-validated $R^2$ values use leave-one-out validation over the available snapshots.}
+\label{tab:granularity-robustness}
+\begin{tabular}{lrrrrrr}
+\hline
+Partition & Regions & $r(H,T_{\rm CRM})$ & $r(H,R_{\rm FRM/CRM})$ &
+$R^2_{\rm LOO}(N)$ & $R^2_{\rm LOO}(N+H)$ & $\Delta R^2$ \\
+\hline
+$8\times8$ & 64 & 0.489 & 0.891 & -0.056 & 0.857 & 0.912 \\
+$16\times16$ & 256 & 0.329 & 0.918 & -0.056 & 0.826 & 0.882 \\
+\hline
+\end{tabular}
+\end{table}
